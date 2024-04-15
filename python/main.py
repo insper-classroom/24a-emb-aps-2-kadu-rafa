@@ -1,34 +1,69 @@
 import serial
 import uinput
 
-ser = serial.Serial('/dev/ttyACM0', 115200)
+ser = serial.Serial('/dev/rfcomm0', 9600) # Mude a porta para rfcomm0 se estiver usando bluetooth no linux
+# Caso você esteja usando windows você deveria definir uma porta fixa para seu dispositivo (para facilitar sua vida mesmo)
+# Siga esse tutorial https://community.element14.com/technologies/internet-of-things/b/blog/posts/standard-serial-over-bluetooth-on-windows-10 e mude o código acima para algo como: ser = serial.Serial('COMX', 9600) (onde X é o número desejado)
 
-# Create new mouse device
-device = uinput.Device([
-    uinput.BTN_LEFT,
-    uinput.BTN_RIGHT,
+# (Mais códigos aqui https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/input-event-codes.h?h=v4.7)
+buttons = [
     uinput.REL_X,
     uinput.REL_Y,
-])
+    uinput.BTN_LEFT,
+    uinput.BTN_RIGHT,
+    uinput.KEY_1, 
+    uinput.KEY_2, 
+    uinput.KEY_3, 
+    uinput.KEY_4, 
+    uinput.KEY_Q,
+    uinput.KEY_SPACE, 
+]
+buttons_names = [
+    "ANL AXIS X",
+    "ANL AXIS Y",
+    "LARGE LEFT BUTTON",
+    "LARGE RIGHT BUTTON",
+    "RED BUTTON",
+    "GREEN BUTTON",
+    "BLUE BUTTON",
+    "YELLOW BUTTON",
+    "BLACK BUTTON",
+    "ANL BUTTON",
+]
+button_quantity = len(buttons)
+device = uinput.Device(buttons)
 
 
+# Função para analisar os dados recebidos do dispositivo externo
 def parse_data(data):
-    axis = data[0]  # 0 for X, 1 for Y
+    """
+    Esta função analisa os dados recebidos do dispositivo externo e retorna o botão e o valor correspondentes.
+
+    Argumentos:
+    data (bytes): Os dados recebidos do dispositivo externo.
+
+    Retorna:
+    int, int: O número do botão e o valor do botão.
+    """
+    button = data[0]  # Axis no C, o botão apertado
     value = int.from_bytes(data[1:3], byteorder='little', signed=True)
     print(f"Received data: {data}")
-    print(f"axis: {axis}, value: {value}")
-    return axis, value
+    print(f"button: {buttons_names[button]}, value: {value}") if button < button_quantity else print(f"button invalid")
+    return button, value
 
+def emulate_controller(button, value):
+    """
+    Esta função emula a entrada do controlador no sistema com base no botão e valor recebidos.
 
-def move_mouse(axis, value):
-    if axis == 0:    # X-axis
-        device.emit(uinput.REL_X, value)
-    elif axis == 1:  # Y-axis
-        device.emit(uinput.REL_Y, value)
+    button (int): O número do botão a ser emulado.
+    value (int): O valor do botão.
 
+    """
+    if button < button_quantity:
+        device.emit(buttons[button], value)
 
 try:
-    # sync package
+    # Pacote de sync
     while True:
         print('Waiting for sync package...')
         while True:
@@ -36,10 +71,10 @@ try:
             if data == b'\xff':
                 break
 
-        # Read 4 bytes from UART
+        # Lendo 4 bytes da uart
         data = ser.read(3)
-        axis, value = parse_data(data)
-        move_mouse(axis, value)
+        button, value = parse_data(data)
+        emulate_controller(button, value)
 
 except KeyboardInterrupt:
     print("Program terminated by user")
