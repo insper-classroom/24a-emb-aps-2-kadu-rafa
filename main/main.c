@@ -17,12 +17,28 @@ QueueHandle_t QueueData;
 QueueHandle_t QueueBTN;
 
 void gpio_callback(uint gpio, uint32_t events) {
-    if (events == 0x8) { // rise edge
-        if (gpio == ANL_BTN_PIN) { 
-            int id = ANL_BTN_ID;
-            xQueueSendFromISR(QueueBTN, &id, 0);
-        }
+    package data;
+    if (events == 0x4) data.val = 1;
+    else if (events == 0x8) data.val = 0;
+
+    if (gpio == ANL_BTN_PIN) { 
+        data.id = ANL_BTN_ID;
+    } else if (gpio == LARGE_LEFT_BTN_PIN) { 
+        data.id = LARGE_LEFT_BTN_ID;
+    } else if (gpio == LARGE_RIGHT_BTN_PIN) { 
+        data.id = LARGE_RIGHT_BTN_ID;
+    } else if (gpio == RED_BTN_PIN) { 
+        data.id = RED_BTN_ID;
+    } else if (gpio == GREEN_BTN_PIN) { 
+        data.id = GREEN_BTN_ID;
+    } else if (gpio == BLUE_BTN_PIN) { 
+        data.id = BLUE_BTN_ID;
+    }  else if (gpio == YEllOW_BTN_PIN) { 
+        data.id = YEllOW_BTN_ID;
+    } else if (gpio == BLACK_BTN_PIN) { 
+        data.id = BLACK_BTN_ID;
     }
+    xQueueSendFromISR(QueueBTN, &data, 0);
 }
 
 void write_package(package data) {
@@ -76,24 +92,23 @@ void adc_task(void *p) {
 }
 
 void btn_task(void *p) {
-    int btn_list[1] = {ANL_BTN_PIN};
-    for (int i=0; i < 1; i++) {
+    int btn_list[8] = {LARGE_LEFT_BTN_PIN, LARGE_RIGHT_BTN_PIN, RED_BTN_PIN, GREEN_BTN_PIN, BLUE_BTN_PIN, YEllOW_BTN_PIN, BLACK_BTN_PIN, ANL_BTN_PIN};
+    for (int i=0; i < 8; i++) {
         if (i == 0) init_btn(btn_list[i], &gpio_callback);
         else init_btn(btn_list[i], NULL);
     }
 
-    int id;
-    package data = {-1, 1};
-    int last_time_press = 0;
-    int last_btn_press = 0;
+    package data;
+    int last_time = 0;
+    package last_btn = {-1, -1};
 
     while (true) {
-        if (xQueueReceive(QueueBTN, &id, pdMS_TO_TICKS(100)) == pdTRUE) {
+        if (xQueueReceive(QueueBTN, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
             int now =  to_ms_since_boot(get_absolute_time());
-            if (id != last_btn_press || now - last_time_press >= 300) {
-                last_time_press = now;
-                last_btn_press = id;
-                data.id = id;
+            if (data.id != last_btn.id || data.val != last_btn.val || now - last_time >= 300) {
+                last_time = now;
+                last_btn.id = data.id;
+                last_btn.val = data.val;
                 xQueueSend(QueueData, &data, 0);
             }
         }
@@ -104,7 +119,7 @@ int main() {
     stdio_init_all();
 
     QueueData = xQueueCreate(32, sizeof(package));
-    QueueBTN = xQueueCreate(32, sizeof(int));
+    QueueBTN = xQueueCreate(32, sizeof(package));
 
     xTaskCreate(hc06_task, "UART Task", 4096, NULL, 2, NULL);
 
