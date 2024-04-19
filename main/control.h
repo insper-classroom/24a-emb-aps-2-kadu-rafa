@@ -21,6 +21,23 @@ typedef struct {
 #define BLACK_BTN_ID 8
 #define ANL_BTN_ID 9
 
+// IDs keypad
+#define KPAD_0 10
+#define KPAD_1 11
+#define KPAD_2 12
+#define KPAD_3 13
+#define KPAD_4 14
+#define KPAD_5 15
+#define KPAD_6 16
+#define KPAD_7 17
+#define KPAD_8 18
+#define KPAD_9 19
+#define KPAD_AST 20
+#define KPAD_HASH 21
+
+// HC06
+#define STATE_PIN 9
+
 // Analógico
 #define ANL_X_PIN 26
 #define ANL_X_ADC 0
@@ -41,6 +58,15 @@ typedef struct {
 #define YEllOW_BTN_PIN 21
 #define BLACK_BTN_PIN 17
 #define ANL_BTN_PIN 16
+
+// Teclas keypad
+#define KPAD_R1_PIN 15
+#define KPAD_R2_PIN 14
+#define KPAD_R3_PIN 13
+#define KPAD_R4_PIN 12
+#define KPAD_C1_PIN 11
+#define KPAD_C2_PIN 10
+#define KPAD_C3_PIN 9
 
 typedef struct {
     int pin;

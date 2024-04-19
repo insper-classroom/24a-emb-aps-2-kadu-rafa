@@ -15,9 +15,12 @@
 
 QueueHandle_t QueueData;
 QueueHandle_t QueueBTN;
+QueueHandle_t QueueColumn;
 
 void gpio_callback(uint gpio, uint32_t events) {
     package data;
+    int column;
+
     if (events == 0x4) data.val = 1;
     else if (events == 0x8) data.val = 0;
 
@@ -37,8 +40,16 @@ void gpio_callback(uint gpio, uint32_t events) {
         data.id = YEllOW_BTN_ID;
     } else if (gpio == BLACK_BTN_PIN) { 
         data.id = BLACK_BTN_ID;
+    } else if (gpio == KPAD_C1_PIN) {
+        column = 0;
+    } else if (gpio == KPAD_C2_PIN) {
+        column = 1;
+    } else if (gpio == KPAD_C3_PIN) {
+        column = 2;
     }
+
     xQueueSendFromISR(QueueBTN, &data, 0);
+    xQueueSendFromISR(QueueColumn, &column, 0);
 }
 
 void write_package(package data) {
@@ -52,9 +63,17 @@ void write_package(package data) {
 }
 
 void hc06_task(void *p) {
-    
+    gpio_init(LED_R_PIN);
+    gpio_init(LED_G_PIN);
+
+    gpio_set_dir(LED_R_PIN, GPIO_OUT);
+    gpio_set_dir(LED_G_PIN, GPIO_OUT);
+
+    gpio_put(LED_R_PIN, 1);
     printf("bluetooth booting...\n");
     hc06_init("diabloIV_control", "1234");
+
+    gpio_put(LED_B_PIN, 1);
     printf("bluetooth initialized!\n\n");
 
     package data;
@@ -65,6 +84,53 @@ void hc06_task(void *p) {
             printf("%d %d\n", data.id, data.val);
         }
     }
+}
+
+void state_task(void *p) {
+    gpio_init(STATE_PIN);
+    gpio_set_dir(STATE_PIN, GPIO_IN);
+
+    while(true) {
+        printf("%d", gpio_get(STATE_PIN));
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+void keypad_task(void *p) {
+    int kpad_list[7] = {KPAD_C1_PIN, KPAD_C2_PIN, KPAD_C3_PIN, KPAD_R1_PIN, KPAD_R2_PIN, KPAD_R3_PIN, KPAD_R4_PIN};
+
+    for(int i = 0; i < 7; i++) {
+        gpio_init(kpad_list[i]);
+        gpio_set_dir(kpad_list, GPIO_IN);
+        gpio_set_irq_enabled(kpad_list[i],
+                             GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
+                             true);
+    }
+
+    int kpad_rows[4] = {KPAD_R1_PIN, KPAD_R2_PIN, KPAD_R3_PIN, KPAD_R4_PIN};
+    int i = 0;
+    int column = 0;
+
+    int kpad_matrix[4][3] = {{KPAD_1,   KPAD_2,    KPAD_3},
+                             {KPAD_4,   KPAD_5,    KPAD_6},
+                             {KPAD_7,   KPAD_8,    KPAD_9},
+                             {KPAD_AST, KPAD_0, KPAD_HASH}};
+
+    package data;
+    data.val = 0;
+
+    while(true) {
+        gpio_put(kpad_rows[i%4], 1);
+        
+        if(xQueueReceive(QueueColumn, &column, pdMS_TO_TICKS(10)) == pdTRUE) {
+            data.id = kpad_matrix[i%4][column];
+            xQueueSend(QueueData, &data, 0);
+        }
+
+        gpio_put(kpad_rows[(i++)%4], 0);
+    }
+
+
 }
 
 void adc_task(void *p) {
@@ -120,6 +186,7 @@ int main() {
 
     QueueData = xQueueCreate(32, sizeof(package));
     QueueBTN = xQueueCreate(32, sizeof(package));
+    QueueColumn = xQueueCreate(32, sizeof(int));
 
     xTaskCreate(hc06_task, "UART Task", 4096, NULL, 2, NULL);
 
@@ -129,6 +196,8 @@ int main() {
     xTaskCreate(adc_task, "ANL Y Task", 4096, &anlY, 1, NULL);
 
     xTaskCreate(btn_task, "BTN Task", 1028, NULL, 1, NULL);
+
+    xTaskCreate(state_task, "State Task", 256, NULL, 1, NULL);
 
     vTaskStartScheduler();
 
