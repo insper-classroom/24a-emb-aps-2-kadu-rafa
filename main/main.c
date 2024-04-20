@@ -126,15 +126,14 @@ void btn_task(void *p) {
 
     package data;
     int last_time = 0;
-    package last_btn = {-1, -1};
+    int last_btn = -1;
 
     while (true) {
         if (xQueueReceive(QueueBTN, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
             int now =  to_ms_since_boot(get_absolute_time());
-            if (data.id != last_btn.id || now - last_time >= 300) {
+            if (data.id != last_btn || now - last_time >= 300) {
                 last_time = now;
-                last_btn.id = data.id;
-                last_btn.val = data.val;
+                last_btn = data.id;
                 xQueueSend(QueueData, &data, 0);
             }
         }
@@ -148,7 +147,7 @@ void keypad_task(void *p) {
     }
     int kpad_columns[kPAD_COLUMNS] = {KPAD_C1_PIN, KPAD_C2_PIN, KPAD_C3_PIN};
     for(int i = 0; i < kPAD_COLUMNS; i++) {
-        gpio_config(kpad_rows[i], GPIO_IN, false, NULL);
+        gpio_config(kpad_columns[i], GPIO_IN, false, NULL);
     }
     int kpad_matrix[KPAD_ROWS][kPAD_COLUMNS] = {
         {KPAD_1,   KPAD_2,    KPAD_3},
