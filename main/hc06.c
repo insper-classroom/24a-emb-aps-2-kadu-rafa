@@ -50,13 +50,16 @@ bool hc06_set_pin(char pin[]) {
 }
 
 bool hc06_set_at_mode(int on){
-    gpio_put(HC06_PIN, on);
+    gpio_put(HC06_ENABLE_PIN, on);
 }
 
 bool hc06_init(char name[], char pin[]) {
     uart_init(HC06_UART_ID, HC06_BAUD_RATE);
     gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
+    
+    gpio_init(HC06_ENABLE_PIN);
+    gpio_set_dir(HC06_ENABLE_PIN, GPIO_OUT);
     
     hc06_set_at_mode(1);
     printf("check connection\n");

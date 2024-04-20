@@ -4,133 +4,93 @@
 #include <queue.h>
 
 #include <string.h>
+#include <stdio.h>
 
 #include "pico/stdlib.h"
-#include <stdio.h>
 #include "hardware/adc.h"
 
 #include "hc06.h"
-
 #include "control.h"
 
 QueueHandle_t QueueData;
 QueueHandle_t QueueBTN;
-QueueHandle_t QueueColumn;
+QueueHandle_t QueuePADColumn;
+SemaphoreHandle_t SemaphoreANL;
 
 void gpio_callback(uint gpio, uint32_t events) {
-    package data;
-    int column;
-
-    if (events == 0x4) data.val = 1;
-    else if (events == 0x8) data.val = 0;
+    package data = {-1, 0};
+    int column = -1;
 
     if (gpio == ANL_BTN_PIN) { 
+        if (events == 0x4) data.val = 1;
         data.id = ANL_BTN_ID;
-    } else if (gpio == LARGE_LEFT_BTN_PIN) { 
-        data.id = LARGE_LEFT_BTN_ID;
-    } else if (gpio == LARGE_RIGHT_BTN_PIN) { 
-        data.id = LARGE_RIGHT_BTN_ID;
-    } else if (gpio == RED_BTN_PIN) { 
-        data.id = RED_BTN_ID;
-    } else if (gpio == GREEN_BTN_PIN) { 
-        data.id = GREEN_BTN_ID;
-    } else if (gpio == BLUE_BTN_PIN) { 
-        data.id = BLUE_BTN_ID;
-    }  else if (gpio == YEllOW_BTN_PIN) { 
-        data.id = YEllOW_BTN_ID;
-    } else if (gpio == BLACK_BTN_PIN) { 
-        data.id = BLACK_BTN_ID;
-    } else if (gpio == KPAD_C1_PIN) {
-        column = 0;
-    } else if (gpio == KPAD_C2_PIN) {
-        column = 1;
-    } else if (gpio == KPAD_C3_PIN) {
-        column = 2;
-    }
 
-    xQueueSendFromISR(QueueBTN, &data, 0);
-    xQueueSendFromISR(QueueColumn, &column, 0);
-}
+    } else if (events == 0x8) {
+        if (gpio == BLACK_BTN_PIN) { 
+            data.id = BLACK_BTN_ID;
+        } else if (gpio == RED_BTN_PIN) { 
+            data.id = RED_BTN_ID;
+        } else if (gpio == GREEN_BTN_PIN) { 
+            data.id = GREEN_BTN_ID;
+        } else if (gpio == BLUE_BTN_PIN) { 
+            data.id = BLUE_BTN_ID;
+        }  else if (gpio == YEllOW_BTN_PIN) { 
+            data.id = YEllOW_BTN_ID;
+        } else if (gpio == ANL_MODE_BTN_PIN) {
+            data.id = ANL_MODE_BTN_ID;
+        } else if (gpio == KPAD_C1_PIN) {
+            column = 0;
+        } else if (gpio == KPAD_C2_PIN) {
+            column = 1;
+        } else if (gpio == KPAD_C3_PIN) {
+            column = 2;
+        }
+    }   
 
-void write_package(package data) {
-    int msb = data.val >> 8;
-    int lsb = data.val & 0xFF ;
-
-    uart_putc_raw(HC06_UART_ID, data.id);
-    uart_putc_raw(HC06_UART_ID, lsb);
-    uart_putc_raw(HC06_UART_ID, msb);
-    uart_putc_raw(HC06_UART_ID, -1);
+    if (data.id != -1) xQueueSendFromISR(QueueBTN, &data, 0);
+    else if (column != -1) xQueueSendFromISR(QueuePADColumn, &column, 0);
 }
 
 void hc06_task(void *p) {
-    gpio_init(LED_R_PIN);
-    gpio_init(LED_G_PIN);
-
-    gpio_set_dir(LED_R_PIN, GPIO_OUT);
-    gpio_set_dir(LED_G_PIN, GPIO_OUT);
-
-    gpio_put(LED_R_PIN, 1);
+    init_rgb_led();
+    set_rgb_led(1,0,0);
     printf("bluetooth booting...\n");
     hc06_init("diabloIV_control", "1234");
-
-    gpio_put(LED_B_PIN, 1);
     printf("bluetooth initialized!\n\n");
+    set_rgb_led(1,1,0);
 
     package data;
+    int anl_mouse = true;
 
     while (true) {
         if (xQueueReceive(QueueData, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
-            write_package(data);
+            if (data.id < 2 && !anl_mouse) {
+                data.val = 1;
+                data.id = data.id*2 + 4;
+                if (data.val > 0) data.id++;
+            } 
+            write_package(HC06_UART_ID, data);
             printf("%d %d\n", data.id, data.val);
         }
     }
 }
 
-void state_task(void *p) {
-    gpio_init(STATE_PIN);
-    gpio_set_dir(STATE_PIN, GPIO_IN);
-
-    while(true) {
-        printf("%d", gpio_get(STATE_PIN));
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
-void keypad_task(void *p) {
-    int kpad_list[7] = {KPAD_C1_PIN, KPAD_C2_PIN, KPAD_C3_PIN, KPAD_R1_PIN, KPAD_R2_PIN, KPAD_R3_PIN, KPAD_R4_PIN};
-
-    for(int i = 0; i < 7; i++) {
-        gpio_init(kpad_list[i]);
-        gpio_set_dir(kpad_list, GPIO_IN);
-        gpio_set_irq_enabled(kpad_list[i],
-                             GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE,
-                             true);
-    }
-
-    int kpad_rows[4] = {KPAD_R1_PIN, KPAD_R2_PIN, KPAD_R3_PIN, KPAD_R4_PIN};
-    int i = 0;
-    int column = 0;
-
-    int kpad_matrix[4][3] = {{KPAD_1,   KPAD_2,    KPAD_3},
-                             {KPAD_4,   KPAD_5,    KPAD_6},
-                             {KPAD_7,   KPAD_8,    KPAD_9},
-                             {KPAD_AST, KPAD_0, KPAD_HASH}};
+void serial_task(void *p) {
 
     package data;
-    data.val = 0;
+    int anl_mouse = true;
 
-    while(true) {
-        gpio_put(kpad_rows[i%4], 1);
-        
-        if(xQueueReceive(QueueColumn, &column, pdMS_TO_TICKS(10)) == pdTRUE) {
-            data.id = kpad_matrix[i%4][column];
-            xQueueSend(QueueData, &data, 0);
+    while (true) {
+        if (xQueueReceive(QueueData, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
+            if (data.id < 2 && !anl_mouse) {
+                data.val = 1;
+                data.id = data.id*2 + 4;
+                if (data.val > 0) data.id++;
+            } 
+            write_package(uart_default, data);
+            printf("id: %d value: %d\n", data.id, data.val);
         }
-
-        gpio_put(kpad_rows[(i++)%4], 0);
     }
-
-
 }
 
 void adc_task(void *p) {
@@ -158,10 +118,10 @@ void adc_task(void *p) {
 }
 
 void btn_task(void *p) {
-    int btn_list[8] = {LARGE_LEFT_BTN_PIN, LARGE_RIGHT_BTN_PIN, RED_BTN_PIN, GREEN_BTN_PIN, BLUE_BTN_PIN, YEllOW_BTN_PIN, BLACK_BTN_PIN, ANL_BTN_PIN};
-    for (int i=0; i < 8; i++) {
-        if (i == 0) init_btn(btn_list[i], &gpio_callback);
-        else init_btn(btn_list[i], NULL);
+    int btn_list[6] = {BLACK_BTN_PIN, RED_BTN_PIN, GREEN_BTN_PIN, BLUE_BTN_PIN, YEllOW_BTN_PIN, ANL_MODE_BTN_PIN};
+    gpio_config(ANL_BTN_PIN, GPIO_IN, true, &gpio_callback);
+    for (int i=0; i < 6; i++) {
+        gpio_config(btn_list[i], GPIO_IN, true, NULL);
     }
 
     package data;
@@ -171,7 +131,7 @@ void btn_task(void *p) {
     while (true) {
         if (xQueueReceive(QueueBTN, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
             int now =  to_ms_since_boot(get_absolute_time());
-            if (data.id != last_btn.id || data.val != last_btn.val || now - last_time >= 300) {
+            if (data.id != last_btn.id || now - last_time >= 300) {
                 last_time = now;
                 last_btn.id = data.id;
                 last_btn.val = data.val;
@@ -181,23 +141,56 @@ void btn_task(void *p) {
     }
 }
 
+void keypad_task(void *p) {
+    int kpad_rows[KPAD_ROWS] = {KPAD_R1_PIN, KPAD_R2_PIN, KPAD_R3_PIN, KPAD_R4_PIN};
+    for(int i = 0; i < KPAD_ROWS; i++) {
+        gpio_config(kpad_rows[i], GPIO_OUT, false, NULL);
+    }
+    int kpad_columns[kPAD_COLUMNS] = {KPAD_C1_PIN, KPAD_C2_PIN, KPAD_C3_PIN};
+    for(int i = 0; i < kPAD_COLUMNS; i++) {
+        gpio_config(kpad_rows[i], GPIO_IN, false, NULL);
+    }
+    int kpad_matrix[KPAD_ROWS][kPAD_COLUMNS] = {
+        {KPAD_1,   KPAD_2,    KPAD_3},
+        {KPAD_4,   KPAD_5,    KPAD_6},
+        {KPAD_7,   KPAD_8,    KPAD_9},
+        {KPAD_AST, KPAD_0, KPAD_HASH}
+    };
+
+    int i = 0;
+    int column;
+
+    package data;
+    data.val = 0;
+
+    while(true) {
+        gpio_put(kpad_rows[i%4], 1);
+        if(xQueueReceive(QueuePADColumn, &column, pdMS_TO_TICKS(10)) == pdTRUE) {
+            data.id = kpad_matrix[i%4][column];
+            xQueueSend(QueueData, &data, 0);
+        }
+        gpio_put(kpad_rows[(i++)%4], 0);
+    }
+}
+
 int main() {
     stdio_init_all();
 
     QueueData = xQueueCreate(32, sizeof(package));
     QueueBTN = xQueueCreate(32, sizeof(package));
-    QueueColumn = xQueueCreate(32, sizeof(int));
+    QueuePADColumn = xQueueCreate(32, sizeof(int));
+    SemaphoreANL = xSemaphoreCreateBinary();
 
+    // Não use as duas Task ao mesmo tempo
     xTaskCreate(hc06_task, "UART Task", 4096, NULL, 2, NULL);
+    // xTaskCreate(serial_task, "UART Task", 4096, NULL, 2, NULL); 
 
     adc_task_arg anlX = {ANL_X_PIN, ANL_X_ADC};
     xTaskCreate(adc_task, "ANL X Task", 4096, &anlX, 1, NULL);
     adc_task_arg anlY = {ANL_Y_PIN, ANL_Y_ADC};
     xTaskCreate(adc_task, "ANL Y Task", 4096, &anlY, 1, NULL);
 
-    xTaskCreate(btn_task, "BTN Task", 1028, NULL, 1, NULL);
-
-    xTaskCreate(state_task, "State Task", 256, NULL, 1, NULL);
+    xTaskCreate(btn_task, "BTN Task", 4096, NULL, 1, NULL);
 
     vTaskStartScheduler();
 
