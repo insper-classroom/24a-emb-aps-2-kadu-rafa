@@ -1,4 +1,5 @@
 #include "control.h"
+#include <stdio.h>
 #include "pico/stdlib.h"
 
 void write_package(uart_inst_t *uart, package data) {
@@ -9,6 +10,7 @@ void write_package(uart_inst_t *uart, package data) {
     uart_putc_raw(uart, lsb);
     uart_putc_raw(uart, msb);
     uart_putc_raw(uart, -1);
+    printf("id: %d value: %d\n", data.id, data.val);
 }
 
 void gpio_config(int gpio, int direction, bool pull_up, gpio_irq_callback_t callback) {
@@ -31,7 +33,7 @@ void init_rgb_led() {
 }
 
 void set_rgb_led(int r, int g, int b) {
-    gpio_put(LED_R_PIN, r);
     gpio_put(LED_G_PIN, g);
+    gpio_put(LED_R_PIN, r);
     gpio_put(LED_B_PIN, b);
 }

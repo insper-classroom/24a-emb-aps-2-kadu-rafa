@@ -58,6 +58,9 @@ bool hc06_init(char name[], char pin[]) {
     gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
     
+    gpio_init(HC06_STATE_PIN);
+    gpio_set_dir(HC06_STATE_PIN, GPIO_IN);
+
     gpio_init(HC06_ENABLE_PIN);
     gpio_set_dir(HC06_ENABLE_PIN, GPIO_OUT);
     

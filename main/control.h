@@ -13,13 +13,13 @@ typedef struct {
 #define ANL_X_ID 0
 #define ANL_Y_ID 1
 
-#define ANL_BTN_ID 2
-#define BLACK_BTN_ID 3
-
+#define ANL_LEFT_ID 2
+#define ANL_RIGHT_ID 3
 #define ANL_UP_ID 4
 #define ANL_DOWN_ID 5
-#define ANL_LEFT_ID 6
-#define ANL_RIGHT_ID 7
+
+#define ANL_BTN_ID 6
+#define BLACK_BTN_ID 7
 
 #define RED_BTN_ID 8
 #define GREEN_BTN_ID 9
@@ -46,10 +46,13 @@ typedef struct {
 #define ANL_Y_PIN 27
 #define ANL_Y_ADC 1
 
+#define ANL_DEAD_ZONE 10
+
 // Led RGB
 #define LED_R_PIN 6
 #define LED_G_PIN 7
 #define LED_B_PIN 8
+#define LED_W_PIN 28
 
 // Botões
 #define ANL_BTN_PIN 16

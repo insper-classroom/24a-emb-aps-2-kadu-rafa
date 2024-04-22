@@ -51,26 +51,71 @@ void gpio_callback(uint gpio, uint32_t events) {
     else if (column != -1) xQueueSendFromISR(QueuePADColumn, &column, 0);
 }
 
+void wasd(package data) {
+    data.id = data.id*2 + 2;
+    if (abs(data.val) >= ANL_DEAD_ZONE) {
+        if (data.val > 0) {
+            data.val = 0;
+            write_package(HC06_UART_ID, data);
+            data.id++;
+            data.val = 1;
+            write_package(HC06_UART_ID, data);
+        } else {
+            data.val = 1;
+            write_package(HC06_UART_ID, data);
+            data.id++;
+            data.val = 0;
+            write_package(HC06_UART_ID, data);
+        }
+    } else {
+        data.val = 0;
+        write_package(HC06_UART_ID, data);
+        data.id++;
+        write_package(HC06_UART_ID, data);
+    }
+}
+
 void hc06_task(void *p) {
     init_rgb_led();
+    gpio_config(LED_W_PIN, GPIO_OUT, false, NULL);
     set_rgb_led(1,0,0);
     printf("bluetooth booting...\n");
-    hc06_init("diabloIV_control", "1234");
+    hc06_init("dontStarve_control", "1234");
     printf("bluetooth initialized!\n\n");
-    set_rgb_led(1,1,0);
+    set_rgb_led(0,0,1);
 
     package data;
-    int anl_mouse = true;
+    int wasd_mode = false;
+    int connect = false;
 
     while (true) {
+        if (gpio_get(HC06_STATE_PIN)) {
+            set_rgb_led(0,1,0);
+            connect = true;
+        } else {
+            set_rgb_led(0,0,1);
+            connect = false;
+        }
+
+        if (xSemaphoreTake(SemaphoreANL, pdMS_TO_TICKS(1)) == pdTRUE) {
+            wasd_mode = !wasd_mode;
+            gpio_put(LED_W_PIN, wasd_mode);
+        }
+        
         if (xQueueReceive(QueueData, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
-            if (data.id < 2 && !anl_mouse) {
-                data.val = 1;
-                data.id = data.id*2 + 4;
-                if (data.val > 0) data.id++;
-            } 
-            write_package(HC06_UART_ID, data);
-            printf("%d %d\n", data.id, data.val);
+            if (connect) {
+                if (data.id < 2) {
+                    if (wasd_mode) {
+                        wasd(data);
+                        continue;
+                    } else if (abs(data.val) < ANL_DEAD_ZONE) {
+                        data.val = 0;
+                    }
+                }
+                write_package(HC06_UART_ID, data);
+            } else {
+                printf("no device connected\n");
+            }
         }
     }
 }
@@ -81,10 +126,11 @@ void serial_task(void *p) {
     int anl_mouse = true;
 
     while (true) {
+        if (xSemaphoreTake(SemaphoreANL, pdMS_TO_TICKS(1)) == pdTRUE) anl_mouse = !anl_mouse;
         if (xQueueReceive(QueueData, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
             if (data.id < 2 && !anl_mouse) {
                 data.val = 1;
-                data.id = data.id*2 + 4;
+                data.id = data.id*2 + 2;
                 if (data.val > 0) data.id++;
             } 
             write_package(uart_default, data);
@@ -103,16 +149,11 @@ void adc_task(void *p) {
     package data = {arg->adc, 0};
     int i = 0;
 
-    vTaskDelay(pdMS_TO_TICKS(10));
     while (true) {
         adc_select_input(arg->adc); 
         results[(i++)%5] = adc_read();
-        int value = (((results[0] + results[1] + results[2] + results[3] + results[4])/5) - 2047)/32;
-
-        if (abs(value) >= 8) {
-            data.val = value;
-            xQueueSend(QueueData, &data, 0);
-        }
+        data.val = (((results[0] + results[1] + results[2] + results[3] + results[4])/5) - 2047)/40;
+        xQueueSend(QueueData, &data, 0);
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
@@ -124,17 +165,21 @@ void btn_task(void *p) {
         gpio_config(btn_list[i], GPIO_IN, true, NULL);
     }
 
+    int last_times[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
     package data;
-    int last_time = 0;
-    int last_btn = -1;
 
     while (true) {
         if (xQueueReceive(QueueBTN, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
-            int now =  to_ms_since_boot(get_absolute_time());
-            if (data.id != last_btn || now - last_time >= 300) {
-                last_time = now;
-                last_btn = data.id;
-                xQueueSend(QueueData, &data, 0);
+            int index = 20*data.val + data.id - 6;
+            int now = to_ms_since_boot(get_absolute_time());
+            printf("debouncing %d %d\n", data.id, index);
+            if (now - last_times[index] >= 300) {
+                last_times[index] = now;
+                if (data.id == ANL_MODE_BTN_ID) {
+                    printf("troca, porra!\n");
+                    xSemaphoreGive(SemaphoreANL);
+                }else xQueueSend(QueueData, &data, 0);
             }
         }
     }
@@ -159,14 +204,13 @@ void keypad_task(void *p) {
     int i = 0;
     int column;
 
-    package data;
-    data.val = 0;
+    package data = {-1, 0};
 
     while(true) {
         gpio_put(kpad_rows[i%4], 1);
         if(xQueueReceive(QueuePADColumn, &column, pdMS_TO_TICKS(10)) == pdTRUE) {
             data.id = kpad_matrix[i%4][column];
-            xQueueSend(QueueData, &data, 0);
+            xQueueSend(QueueBTN, &data, 0);
         }
         gpio_put(kpad_rows[(i++)%4], 0);
     }
@@ -190,6 +234,7 @@ int main() {
     xTaskCreate(adc_task, "ANL Y Task", 4096, &anlY, 1, NULL);
 
     xTaskCreate(btn_task, "BTN Task", 4096, NULL, 1, NULL);
+    xTaskCreate(keypad_task, "KeyPad Task", 4096, NULL, 1, NULL);
 
     vTaskStartScheduler();
 
