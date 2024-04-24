@@ -48,10 +48,10 @@ buttons_names = [
     "ANL BUTTON [BTN_LEFT]", #6
     "BLACK BUTTON [BTN_RIGHT]", #7
 
-    "RED BUTTON [KEY_SPACE]", #8
-    "GREEN BUTTON [KEY_F]", #9
-    "BLUE BUTTON [KEY_ESC]", #10
-    "YELLOW BUTTON [KEY_ENTER]", #11
+    "BLUE BUTTON [KEY_SPACE]", #8
+    "RED BUTTON [KEY_F]", #9
+    "GRAY BUTTON [KEY_ESC]", #10
+    "WHITE BUTTON [KEY_ENTER]", #11
 
     "PAD 0 [KEY_0]", #12
     "PAD 1 [KEY_1]", #13

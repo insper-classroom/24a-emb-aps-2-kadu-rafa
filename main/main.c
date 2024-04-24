@@ -28,14 +28,14 @@ void gpio_callback(uint gpio, uint32_t events) {
     } else if (events == 0x8) {
         if (gpio == BLACK_BTN_PIN) { 
             data.id = BLACK_BTN_ID;
-        } else if (gpio == RED_BTN_PIN) { 
-            data.id = RED_BTN_ID;
-        } else if (gpio == GREEN_BTN_PIN) { 
-            data.id = GREEN_BTN_ID;
-        } else if (gpio == BLUE_BTN_PIN) { 
-            data.id = BLUE_BTN_ID;
-        }  else if (gpio == YEllOW_BTN_PIN) { 
-            data.id = YEllOW_BTN_ID;
+        } else if (gpio == COLLECT_BTN_PIN) { 
+            data.id = COLLECT_BTN_ID;
+        } else if (gpio == ATTACK_BTN_PIN) { 
+            data.id = ATTACK_BTN_ID;
+        } else if (gpio == ESC_BTN_PIN) { 
+            data.id = ESC_BTN_ID;
+        }  else if (gpio == ENTER_BTN_PIN) { 
+            data.id = ENTER_BTN_ID;
         } else if (gpio == ANL_MODE_BTN_PIN) {
             data.id = ANL_MODE_BTN_ID;
         } else if (gpio == KPAD_C1_PIN) {
@@ -159,7 +159,7 @@ void adc_task(void *p) {
 }
 
 void btn_task(void *p) {
-    int btn_list[6] = {BLACK_BTN_PIN, RED_BTN_PIN, GREEN_BTN_PIN, BLUE_BTN_PIN, YEllOW_BTN_PIN, ANL_MODE_BTN_PIN};
+    int btn_list[6] = {BLACK_BTN_PIN, COLLECT_BTN_PIN, ATTACK_BTN_PIN, ESC_BTN_PIN, ENTER_BTN_PIN, ANL_MODE_BTN_PIN};
     gpio_config(ANL_BTN_PIN, GPIO_IN, true, &gpio_callback);
     for (int i=0; i < 6; i++) {
         gpio_config(btn_list[i], GPIO_IN, true, NULL);
@@ -190,11 +190,11 @@ void keypad_task(void *p) {
     for(int i = 0; i < KPAD_ROWS; i++) {
         gpio_config(kpad_rows[i], GPIO_OUT, false, NULL);
     }
-    int kpad_columns[kPAD_COLUMNS] = {KPAD_C1_PIN, KPAD_C2_PIN, KPAD_C3_PIN};
-    for(int i = 0; i < kPAD_COLUMNS; i++) {
+    int kpad_columns[KPAD_COLUMNS] = {KPAD_C1_PIN, KPAD_C2_PIN, KPAD_C3_PIN};
+    for(int i = 0; i < KPAD_COLUMNS; i++) {
         gpio_config(kpad_columns[i], GPIO_IN, false, NULL);
     }
-    int kpad_matrix[KPAD_ROWS][kPAD_COLUMNS] = {
+    int kpad_matrix[KPAD_ROWS][KPAD_COLUMNS] = {
         {KPAD_1,   KPAD_2,    KPAD_3},
         {KPAD_4,   KPAD_5,    KPAD_6},
         {KPAD_7,   KPAD_8,    KPAD_9},

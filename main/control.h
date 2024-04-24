@@ -21,10 +21,10 @@ typedef struct {
 #define ANL_BTN_ID 6
 #define BLACK_BTN_ID 7
 
-#define RED_BTN_ID 8
-#define GREEN_BTN_ID 9
-#define BLUE_BTN_ID 10
-#define YEllOW_BTN_ID 11
+#define COLLECT_BTN_ID 8
+#define ATTACK_BTN_ID 9
+#define ESC_BTN_ID 10
+#define ENTER_BTN_ID 11
 #define ANL_MODE_BTN_ID 100
 
 #define KPAD_0 12
@@ -57,15 +57,15 @@ typedef struct {
 // Botões
 #define ANL_BTN_PIN 16
 #define BLACK_BTN_PIN 17
-#define RED_BTN_PIN 18
-#define GREEN_BTN_PIN 19
-#define BLUE_BTN_PIN 20
-#define YEllOW_BTN_PIN 21
+#define COLLECT_BTN_PIN 18
+#define ATTACK_BTN_PIN 19
+#define ESC_BTN_PIN 20
+#define ENTER_BTN_PIN 21
 #define ANL_MODE_BTN_PIN 22
 
 // Teclas keypad
 #define KPAD_ROWS 4
-#define kPAD_COLUMNS 3
+#define KPAD_COLUMNS 3
 
 #define KPAD_R1_PIN 15
 #define KPAD_R2_PIN 14
