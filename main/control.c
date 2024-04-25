@@ -1,6 +1,7 @@
 #include "control.h"
 #include <stdio.h>
 #include "pico/stdlib.h"
+#include "hc06.h"
 
 void write_package(uart_inst_t *uart, package data) {
     int msb = data.val >> 8;
@@ -36,4 +37,28 @@ void set_rgb_led(int r, int g, int b) {
     gpio_put(LED_G_PIN, g);
     gpio_put(LED_R_PIN, r);
     gpio_put(LED_B_PIN, b);
+}
+
+void wasd(package data) {
+    data.id = data.id*2 + 2;
+    if (abs(data.val) >= ANL_DEAD_ZONE) {
+        if (data.val > 0) {
+            data.val = 0;
+            write_package(HC06_UART_ID, data);
+            data.id++;
+            data.val = 1;
+            write_package(HC06_UART_ID, data);
+        } else {
+            data.val = 1;
+            write_package(HC06_UART_ID, data);
+            data.id++;
+            data.val = 0;
+            write_package(HC06_UART_ID, data);
+        }
+    } else {
+        data.val = 0;
+        write_package(HC06_UART_ID, data);
+        data.id++;
+        write_package(HC06_UART_ID, data);
+    }
 }

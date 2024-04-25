@@ -51,30 +51,6 @@ void gpio_callback(uint gpio, uint32_t events) {
     else if (column != -1) xQueueSendFromISR(QueuePADColumn, &column, 0);
 }
 
-void wasd(package data) {
-    data.id = data.id*2 + 2;
-    if (abs(data.val) >= ANL_DEAD_ZONE) {
-        if (data.val > 0) {
-            data.val = 0;
-            write_package(HC06_UART_ID, data);
-            data.id++;
-            data.val = 1;
-            write_package(HC06_UART_ID, data);
-        } else {
-            data.val = 1;
-            write_package(HC06_UART_ID, data);
-            data.id++;
-            data.val = 0;
-            write_package(HC06_UART_ID, data);
-        }
-    } else {
-        data.val = 0;
-        write_package(HC06_UART_ID, data);
-        data.id++;
-        write_package(HC06_UART_ID, data);
-    }
-}
-
 void hc06_task(void *p) {
     init_rgb_led();
     gpio_config(LED_W_PIN, GPIO_OUT, false, NULL);
@@ -116,25 +92,6 @@ void hc06_task(void *p) {
             } else {
                 printf("no device connected\n");
             }
-        }
-    }
-}
-
-void serial_task(void *p) {
-
-    package data;
-    int anl_mouse = true;
-
-    while (true) {
-        if (xSemaphoreTake(SemaphoreANL, pdMS_TO_TICKS(1)) == pdTRUE) anl_mouse = !anl_mouse;
-        if (xQueueReceive(QueueData, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
-            if (data.id < 2 && !anl_mouse) {
-                data.val = 1;
-                data.id = data.id*2 + 2;
-                if (data.val > 0) data.id++;
-            } 
-            write_package(uart_default, data);
-            printf("id: %d value: %d\n", data.id, data.val);
         }
     }
 }
@@ -224,9 +181,7 @@ int main() {
     QueuePADColumn = xQueueCreate(32, sizeof(int));
     SemaphoreANL = xSemaphoreCreateBinary();
 
-    // Não use as duas Task ao mesmo tempo
     xTaskCreate(hc06_task, "UART Task", 4096, NULL, 2, NULL);
-    // xTaskCreate(serial_task, "UART Task", 4096, NULL, 2, NULL); 
 
     adc_task_arg anlX = {ANL_X_PIN, ANL_X_ADC};
     xTaskCreate(adc_task, "ANL X Task", 4096, &anlX, 1, NULL);

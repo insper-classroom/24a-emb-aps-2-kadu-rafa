@@ -4,11 +4,6 @@
 
 #define abs(x) ((x < 0) ? -(x) : x)
 
-typedef struct {
-    int id;
-    int val;
-} package;
-
 // IDS
 #define ANL_X_ID 0
 #define ANL_Y_ID 1
@@ -80,9 +75,15 @@ typedef struct {
     int adc;
 } adc_task_arg;
 
+typedef struct {
+    int id;
+    int val;
+} package;
+
 void gpio_config(int gpio, int direction, bool pull_up, gpio_irq_callback_t callback);
 void init_rgb_led();
 void set_rgb_led(int r, int g, int b);
 void write_package(uart_inst_t *uart, package data);
+void wasd(package data);
 
 #endif
