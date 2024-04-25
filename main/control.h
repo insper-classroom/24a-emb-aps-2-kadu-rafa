@@ -1,5 +1,6 @@
 #ifndef CONTROL_H
 #define CONTROL_H
+
 #include "pico/stdlib.h"
 
 #define abs(x) ((x < 0) ? -(x) : x)
@@ -20,7 +21,7 @@
 #define ATTACK_BTN_ID 9
 #define ESC_BTN_ID 10
 #define ENTER_BTN_ID 11
-#define ANL_MODE_BTN_ID 100
+#define ANL_MODE_BTN_ID 24
 
 #define KPAD_0 12
 #define KPAD_1 13
@@ -41,22 +42,24 @@
 #define ANL_Y_PIN 27
 #define ANL_Y_ADC 1
 
-#define ANL_DEAD_ZONE 10
+#define ANL_DEAD_ZONE 20
 
 // Led RGB
 #define LED_R_PIN 6
 #define LED_G_PIN 7
 #define LED_B_PIN 8
+
+// Leds
 #define LED_W_PIN 28
 
 // Botões
-#define ANL_BTN_PIN 16
+#define ANL_MODE_BTN_PIN 16
 #define BLACK_BTN_PIN 17
 #define COLLECT_BTN_PIN 18
 #define ATTACK_BTN_PIN 19
 #define ESC_BTN_PIN 20
 #define ENTER_BTN_PIN 21
-#define ANL_MODE_BTN_PIN 22
+#define ANL_BTN_PIN 22
 
 // Teclas keypad
 #define KPAD_ROWS 4

@@ -65,13 +65,8 @@ void hc06_task(void *p) {
     int connect = false;
 
     while (true) {
-        if (gpio_get(HC06_STATE_PIN)) {
-            set_rgb_led(0,1,0);
-            connect = true;
-        } else {
-            set_rgb_led(0,0,1);
-            connect = false;
-        }
+        connect = gpio_get(HC06_STATE_PIN);
+        (connect) ? set_rgb_led(0,1,0) : set_rgb_led(0,0,1);
 
         if (xSemaphoreTake(SemaphoreANL, pdMS_TO_TICKS(1)) == pdTRUE) {
             wasd_mode = !wasd_mode;
@@ -81,14 +76,10 @@ void hc06_task(void *p) {
         if (xQueueReceive(QueueData, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
             if (connect) {
                 if (data.id < 2) {
-                    if (wasd_mode) {
-                        wasd(data);
-                        continue;
-                    } else if (abs(data.val) < ANL_DEAD_ZONE) {
-                        data.val = 0;
-                    }
-                }
-                write_package(HC06_UART_ID, data);
+                    if (wasd_mode) wasd(data);
+                    else if (abs(data.val) > ANL_DEAD_ZONE) write_package(HC06_UART_ID, data);
+
+                } else write_package(HC06_UART_ID, data);
             } else {
                 printf("no device connected\n");
             }
@@ -109,7 +100,7 @@ void adc_task(void *p) {
     while (true) {
         adc_select_input(arg->adc); 
         results[(i++)%5] = adc_read();
-        data.val = (((results[0] + results[1] + results[2] + results[3] + results[4])/5) - 2047)/40;
+        data.val = -(((results[0] + results[1] + results[2] + results[3] + results[4])/5) - 2047)/40;
         xQueueSend(QueueData, &data, 0);
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -130,13 +121,11 @@ void btn_task(void *p) {
         if (xQueueReceive(QueueBTN, &data, pdMS_TO_TICKS(100)) == pdTRUE) {
             int index = 20*data.val + data.id - 6;
             int now = to_ms_since_boot(get_absolute_time());
-            printf("debouncing %d %d\n", data.id, index);
             if (now - last_times[index] >= 300) {
                 last_times[index] = now;
                 if (data.id == ANL_MODE_BTN_ID) {
-                    printf("troca, porra!\n");
                     xSemaphoreGive(SemaphoreANL);
-                }else xQueueSend(QueueData, &data, 0);
+                } else xQueueSend(QueueData, &data, 0);
             }
         }
     }
