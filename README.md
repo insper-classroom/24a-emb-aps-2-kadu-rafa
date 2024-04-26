@@ -6,7 +6,7 @@
 
 ### Sobre o Projeto
 
-O projeto se trata de um prototipar um controle bluetooth mais simples que o normal e que, ainda sim, permita uma experiência completa do jogo.
+O projeto se trata de um prototipar um controle *Bluetooth* mais simples que o normal e que, ainda sim, permita uma experiência completa do jogo.
 
 <img alt="Imagem do Protótipo" src="./img/prototipo_controle.jpeg">
 
@@ -35,28 +35,37 @@ Após receber e filtrar os inputs dos botões e analógicos, o dados são trasmi
 Para realizar a interpretação dos dados recebidos pelo controle, foi desenvolvido um [código em *python*](./python/main.py) que decodifica a informação e a utiliza para emular os botões do jogo usando a biblioteca *python-uinput*.
 
 O protótipo físico foi construido utilizando os seguintes componentes e materiais:
-- 1 Raspiberry Pi Pico;
-- 1 Móludo Bluetooth HC-06
-- 1 Led Branco;
-- 1 led RGB;
+- 1 *Raspberry Pi Pico*;
+- 1 Módulo Bluetooth HC-06
+- 1 LED Branco;
+- 1 LED RGB;
 - 6 botões *push up* coloridos simples;
-- 1 joystick
-- 1 teclado com 12 botões;
-- 1 resistor de 330 $\Omega$;
-- 1 resistor de 470 $\Omega$;
-- 1 bateria Lipo de 530 mAh;
-- 1 switch on/off;
+- 1 Joystick
+- 1 Teclado com 12 botões;
+- 1 Resistor de 330 $\Omega$;
+- 1 Resistor de 470 $\Omega$;
+- 1 Bateria LiPO de 530 mAh;
+- 1 Switch on/off;
 - Jumpers e fios rígidos;
 - MDF 3mm.
 
+### Utilizando o Controle
+
+Para conectar o *Bluetooth* execute no terminal o comando:
+    
+    sudo rfcomm connect /dev/rfcomm0 98:DA:60:02:7E:DC
+
+Em seguida, execute o código *python* para interpretar as informações vindas do controle utilizando o comando:
+
+    sudo python3 ./python/main.py
 
 ### Critérios Avaliativos
-    C : Desenvolver um controle bluetooth para um jogo espefícico com protótipo mecÂnico costumizado, sequindo os critérios disponpiveis na rubrica;
-    C+: Apresentar um protótipo físico completo e funcional do controle;
-    B : Organizar o código em arquivos .c e .h separando o código em funções para maior organização;
-    B+: Utiliza algum componente não visto em sala ( Keypad );
-    A : Jogo escolhido é completamente jogável com o controle;  
-    A+: 
+- [x] C : Desenvolver um controle bluetooth para um jogo espefícico com protótipo mecânico customizado, sequindo os critérios disponíveis na rubrica;
+- [x] C+: Apresentar um protótipo físico completo e funcional do controle;
+- [x] B : Organizar o código em arquivos .c e .h separando o código em funções para organização;
+- [x] B+: Utiliza algum componente não visto em sala (keypad);
+- [x] A : Jogo escolhido é completamente jogável com o controle;  
+- [ ] A+: 
 
 ### Desenvolvedores
 
