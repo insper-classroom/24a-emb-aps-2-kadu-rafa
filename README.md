@@ -1,6 +1,6 @@
 # Controle para o jogo *Don't Starve*
 
-<img alt="Capa do Jogo" src="https://imgur.com/a/wQCsYSz.jpeg">
+<img alt="Capa do Jogo" src="./img/dont_starve_backdrop.png">
 
 [*Don't Starve*](https://store.steampowered.com/app/219740/Dont_Starve/?l=portuguese) é um jogo de sobrevivência e exploração hardcore em que você precisa sobreviver em um local desconhecido, coletando recursos, criando itens e se defendendo de criaturas.
 
@@ -8,7 +8,7 @@
 
 O projeto se trata de um prototipar um controle bluetooth mais simples que o normal e que, ainda sim, permita uma experiência completa do jogo.
 
-<img alt="Imagem do Protótipo" src="">
+<img alt="Imagem do Protótipo" src="./img/prototipo_controle.jpeg">
 
 O controle foi desenvolvido e prototipado para a APS 2 da disciplina *Computação Embarcada* Insper 2024.1. O enunciado da tarefa está disponível nesse [link](https://insper-embarcados.github.io/site/aps/aps-2-controle/).
 
@@ -28,7 +28,7 @@ O controle foi desenvolvido e prototipado para a APS 2 da disciplina *Computaç�
 
 O código do controle foi desenvolvido utilizando a *Linguagem C* fazendo uso de RTOS, tasks, queues e semaphores seguindo o diagrama abaixo.
 
-<img alt="Estrutura do Código" src="https://imgur.com/a/PJG05R2.jpeg">
+<img alt="Estrutura do Código" src="./img//Estrutura_código.drawio.png">
 
 Após receber e filtrar os inputs dos botões e analógicos, o dados são trasmitidos para o computador por meio da conexão *Bluetooth*.
 
